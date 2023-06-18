@@ -1,41 +1,45 @@
 const express = require('express');
-const bodyParser = require('body-parser');
 const mysql = require('mysql');
+const bodyParser = require('body-parser');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = 3000;
 
-// Create a MySQL connection pool
-const pool = mysql.createPool({
+// Create a MySQL connection
+const connection = mysql.createConnection({
   host: 'localhost',
-  user: 'your_username',
-  password: 'your_password',
-  database: 'your_database',
+  user: 'your_mysql_username',
+  password: 'your_mysql_password',
+  database: 'your_database_name',
 });
 
-// Middleware
+// Connect to MySQL
+connection.connect((error) => {
+  if (error) {
+    console.error('Error connecting to MySQL:', error);
+  } else {
+    console.log('Connected to MySQL database!');
+  }
+});
+
+// Middleware to parse request body
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-// Routes
-app.get('/', (req, res) => {
-  res.send('Hello, World!');
-});
-
+// Handle form submission
 app.post('/submit', (req, res) => {
-  // Get form data from request body
   const { fullName, email, message } = req.body;
 
-  // Create a SQL query to insert form data into the database
-  const query = `INSERT INTO forms (fullName, email, message) VALUES (?, ?, ?)`;
+  const query = 'INSERT INTO forms (fullName, email, message) VALUES (?, ?, ?)';
+  const values = [fullName, email, message];
 
-  // Execute the query with form data
-  pool.query(query, [fullName, email, message], (error, results) => {
+  connection.query(query, values, (error, results) => {
     if (error) {
-      console.error(error);
-      res.status(500).send('Error saving form data');
+      console.error('Error inserting form data:', error);
+      res.status(500).json({ error: 'An error occurred while submitting the form.' });
     } else {
-      res.send('Form submitted successfully');
+      console.log('Form data inserted successfully!');
+      res.status(200).json({ message: 'Form submitted successfully!' });
     }
   });
 });

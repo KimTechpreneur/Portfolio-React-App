@@ -1,25 +1,17 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const mongoose = require('mongoose');
+const mysql = require('mysql');
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Connect to MongoDB database
-mongoose.connect('mongodb://localhost/mydatabase', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
+// Create a MySQL connection pool
+const pool = mysql.createPool({
+  host: 'localhost',
+  user: 'your_username',
+  password: 'your_password',
+  database: 'your_database',
 });
-
-// Create a schema for the form data
-const formSchema = new mongoose.Schema({
-  fullName: String,
-  email: String,
-  message: String,
-});
-
-// Create a model based on the schema
-const Form = mongoose.model('Form', formSchema);
 
 // Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -34,17 +26,13 @@ app.post('/submit', (req, res) => {
   // Get form data from request body
   const { fullName, email, message } = req.body;
 
-  // Create a new form document
-  const newForm = new Form({
-    fullName,
-    email,
-    message,
-  });
+  // Create a SQL query to insert form data into the database
+  const query = `INSERT INTO forms (fullName, email, message) VALUES (?, ?, ?)`;
 
-  // Save the form data to the database
-  newForm.save((err) => {
-    if (err) {
-      console.error(err);
+  // Execute the query with form data
+  pool.query(query, [fullName, email, message], (error, results) => {
+    if (error) {
+      console.error(error);
       res.status(500).send('Error saving form data');
     } else {
       res.send('Form submitted successfully');
